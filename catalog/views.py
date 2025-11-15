@@ -304,6 +304,12 @@ class FavoritesView(LoginRequiredMixin, ListView):
         return Favorite.objects.filter(
             user=self.request.user
         ).select_related('media').order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Gêneros para filtros
+        context['genres'] = Genre.objects.all()
+        return context
 
 
 class ContentRequestCreateView(LoginRequiredMixin, CreateView):
@@ -322,6 +328,25 @@ class ContentRequestCreateView(LoginRequiredMixin, CreateView):
             'Sua solicitação foi enviada com sucesso! Você será notificado quando for processada.'
         )
         return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estatísticas das solicitações
+        context['total_requests'] = ContentRequest.objects.count()
+        context['approved_requests'] = ContentRequest.objects.filter(status='approved').count()
+        context['pending_requests'] = ContentRequest.objects.filter(status='pending').count()
+        context['active_users'] = ContentRequest.objects.values('user').distinct().count()
+        
+        # Solicitações populares (mais solicitadas)
+        from django.db.models import Count
+        context['popular_requests'] = ContentRequest.objects.values(
+            'title', 'media_type', 'year', 'description', 'status'
+        ).annotate(
+            request_count=Count('title')
+        ).filter(request_count__gt=1).order_by('-request_count')[:6]
+        
+        return context
 
 
 class MyContentRequestsView(LoginRequiredMixin, ListView):
@@ -336,6 +361,17 @@ class MyContentRequestsView(LoginRequiredMixin, ListView):
         return ContentRequest.objects.filter(
             user=self.request.user
         ).order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estatísticas das solicitações do usuário
+        user_requests = self.get_queryset()
+        context['requests_pending'] = user_requests.filter(status='pending').count()
+        context['requests_approved'] = user_requests.filter(status='approved').count()
+        context['requests_added'] = user_requests.filter(status='added').count()
+        
+        return context
 
 
 class MyReviewsView(LoginRequiredMixin, ListView):
@@ -350,6 +386,22 @@ class MyReviewsView(LoginRequiredMixin, ListView):
         return Review.objects.filter(
             user=self.request.user
         ).select_related('media').order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estatísticas do usuário
+        reviews = self.get_queryset()
+        if reviews.exists():
+            context['user_average_rating'] = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
+            context['reviews_with_comments'] = reviews.filter(comment__isnull=False).exclude(comment='').count()
+            context['total_likes_received'] = sum(review.likes.count() for review in reviews)
+        else:
+            context['user_average_rating'] = 0
+            context['reviews_with_comments'] = 0
+            context['total_likes_received'] = 0
+            
+        return context
 
 
 # Function-based views para AJAX

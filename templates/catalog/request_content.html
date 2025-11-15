@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitar Conteúdo - CETPVPFLIX{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="bg-dark text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h2 mb-3">
+                    <i class="fas fa-plus-circle text-orange me-3"></i>Solicitar Conteúdo
+                </h1>
+                <p class="mb-0 text-muted">
+                    Não encontrou o filme ou série que procura? Faça uma solicitação e nossa equipe irá analisar!
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="bg-orange px-3 py-2 rounded">
+                    <i class="fas fa-clock me-2"></i>
+                    <small>Resposta em até 48h</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Formulário de Solicitação -->
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-orange text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-film me-2"></i>Nova Solicitação de Conteúdo
+                        </h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="POST">
+                            {% csrf_token %}
+                            
+                            <!-- Tipo de Mídia -->
+                            <div class="mb-4">
+                                <label for="{{ form.media_type.id_for_label }}" class="form-label fw-bold">
+                                    <i class="fas fa-tags me-2"></i>Tipo de Conteúdo *
+                                </label>
+                                <select class="form-select form-select-lg" name="{{ form.media_type.name }}" 
+                                        id="{{ form.media_type.id_for_label }}" required>
+                                    <option value="">Selecione o tipo de conteúdo...</option>
+                                    <option value="movie" {% if form.media_type.value == 'movie' %}selected{% endif %}>
+                                        🎬 Filme
+                                    </option>
+                                    <option value="tv" {% if form.media_type.value == 'tv' %}selected{% endif %}>
+                                        📺 Série / Programa de TV
+                                    </option>
+                                </select>
+                                {% if form.media_type.errors %}
+                                    <div class="text-danger mt-1">{{ form.media_type.errors|first }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Título -->
+                            <div class="mb-4">
+                                <label for="{{ form.title.id_for_label }}" class="form-label fw-bold">
+                                    <i class="fas fa-heading me-2"></i>Título *
+                                </label>
+                                <input type="text" class="form-control form-control-lg" 
+                                       name="{{ form.title.name }}" 
+                                       id="{{ form.title.id_for_label }}"
+                                       value="{{ form.title.value|default:'' }}"
+                                       placeholder="Digite o título completo do filme ou série..."
+                                       required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Use o título original ou mais conhecido. Ex: "Avengers: Endgame" ou "Breaking Bad"
+                                </div>
+                                {% if form.title.errors %}
+                                    <div class="text-danger mt-1">{{ form.title.errors|first }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Ano (opcional) -->
+                            <div class="mb-4">
+                                <label for="{{ form.year.id_for_label }}" class="form-label fw-bold">
+                                    <i class="fas fa-calendar me-2"></i>Ano de Lançamento (opcional)
+                                </label>
+                                <input type="number" class="form-control" 
+                                       name="{{ form.year.name }}" 
+                                       id="{{ form.year.id_for_label }}"
+                                       value="{{ form.year.value|default:'' }}"
+                                       placeholder="Ex: 2023"
+                                       min="1900" 
+                                       max="2030">
+                                <div class="form-text">
+                                    Helps us identify the correct content, especially for remakes or series with multiple seasons
+                                </div>
+                                {% if form.year.errors %}
+                                    <div class="text-danger mt-1">{{ form.year.errors|first }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Descrição/Motivo -->
+                            <div class="mb-4">
+                                <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
+                                    <i class="fas fa-comment-dots me-2"></i>Descrição ou Motivo da Solicitação (opcional)
+                                </label>
+                                <textarea class="form-control" 
+                                          name="{{ form.description.name }}" 
+                                          id="{{ form.description.id_for_label }}"
+                                          rows="4"
+                                          placeholder="Conte-nos mais sobre este conteúdo ou por que gostaria que fosse adicionado...">{{ form.description.value|default:'' }}</textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Dicas: Mencione informações como diretor, atores principais, gênero, ou por que é importante para você
+                                </div>
+                                {% if form.description.errors %}
+                                    <div class="text-danger mt-1">{{ form.description.errors|first }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Informações Adicionais -->
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-info-circle me-2"></i>Informações Importantes
+                                </h6>
+                                <ul class="mb-0 small">
+                                    <li>Verificamos todas as solicitações manualmente</li>
+                                    <li>Priorizamos conteúdo com alta demanda e disponibilidade legal</li>
+                                    <li>Você será notificado por email sobre o status da sua solicitação</li>
+                                    <li>Solicitações duplicadas serão agrupadas automaticamente</li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Botões -->
+                            <div class="d-flex gap-3 justify-content-end">
+                                <a href="{% url 'catalog:home' %}" class="btn btn-outline-secondary btn-lg">
+                                    <i class="fas fa-arrow-left me-2"></i>Voltar
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-paper-plane me-2"></i>Enviar Solicitação
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção de Estatísticas -->
+<section class="bg-light py-5">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line fa-2x text-orange mb-3"></i>
+                        <h3 class="h4 text-orange">{{ total_requests }}</h3>
+                        <p class="text-muted mb-0">Solicitações recebidas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                        <h3 class="h4 text-success">{{ approved_requests }}</h3>
+                        <p class="text-muted mb-0">Solicitações aprovadas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-clock fa-2x text-warning mb-3"></i>
+                        <h3 class="h4 text-warning">{{ pending_requests }}</h3>
+                        <p class="text-muted mb-0">Em análise</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-users fa-2x text-info mb-3"></i>
+                        <h3 class="h4 text-info">{{ active_users }}</h3>
+                        <p class="text-muted mb-0">Usuários ativos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Solicitações Populares -->
+<section class="py-5">
+    <div class="container">
+        <h3 class="mb-4 text-center">
+            <i class="fas fa-fire text-orange me-2"></i>Solicitações Mais Populares
+        </h3>
+        
+        <div class="row">
+            {% for popular_request in popular_requests %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h6 class="card-title mb-0">{{ popular_request.title }}</h6>
+                            <span class="badge {% if popular_request.media_type == 'movie' %}bg-primary{% else %}bg-success{% endif %}">
+                                {% if popular_request.media_type == 'movie' %}Filme{% else %}Série{% endif %}
+                            </span>
+                        </div>
+                        
+                        {% if popular_request.year %}
+                        <p class="text-muted small mb-2">Ano: {{ popular_request.year }}</p>
+                        {% endif %}
+                        
+                        {% if popular_request.description %}
+                        <p class="text-muted small">{{ popular_request.description|truncatechars:100 }}</p>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted">
+                                {{ popular_request.request_count }} solicitação{{ popular_request.request_count|pluralize:"ções" }}
+                            </small>
+                            <span class="badge {% if popular_request.status == 'approved' %}bg-success{% elif popular_request.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                                {% if popular_request.status == 'pending' %}Em análise
+                                {% elif popular_request.status == 'approved' %}Aprovado
+                                {% elif popular_request.status == 'rejected' %}Rejeitado
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center">
+                <p class="text-muted">Nenhuma solicitação popular ainda. Seja o primeiro a fazer uma!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section class="bg-light py-5">
+    <div class="container">
+        <h3 class="text-center mb-5">
+            <i class="fas fa-question-circle text-orange me-2"></i>Perguntas Frequentes
+        </h3>
+        
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq1">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse1" aria-expanded="true" aria-controls="collapse1">
+                                Quanto tempo leva para analisar uma solicitação?
+                            </button>
+                        </h2>
+                        <div id="collapse1" class="accordion-collapse collapse show" 
+                             aria-labelledby="faq1" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Analisamos todas as solicitações em até 48 horas úteis. Solicitações mais complexas ou que requerem verificação adicional podem levar um pouco mais de tempo.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq2">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse2" aria-expanded="false" aria-controls="collapse2">
+                                Quais são os critérios para aprovação?
+                            </button>
+                        </h2>
+                        <div id="collapse2" class="accordion-collapse collapse" 
+                             aria-labelledby="faq2" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Consideramos fatores como disponibilidade legal, demanda dos usuários, qualidade do conteúdo e adequação às diretrizes da plataforma. Priorizamos conteúdo popular e bem avaliado.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq3">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse3" aria-expanded="false" aria-controls="collapse3">
+                                Posso acompanhar o status da minha solicitação?
+                            </button>
+                        </h2>
+                        <div id="collapse3" class="accordion-collapse collapse" 
+                             aria-labelledby="faq3" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Sim! Você pode acompanhar todas as suas solicitações na sua <a href="{% url 'accounts:profile' %}">página de perfil</a>. Também enviamos notificações por email quando há atualizações.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq4">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse4" aria-expanded="false" aria-controls="collapse4">
+                                E se minha solicitação for rejeitada?
+                            </button>
+                        </h2>
+                        <div id="collapse4" class="accordion-collapse collapse" 
+                             aria-labelledby="faq4" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Se uma solicitação for rejeitada, fornecemos o motivo. Você pode fazer uma nova solicitação com informações adicionais ou aguardar, pois revisamos periodicamente as decisões baseadas na demanda.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation feedback
+    const form = document.querySelector('form');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const mediaType = document.querySelector('select[name="media_type"]');
+            const title = document.querySelector('input[name="title"]');
+            
+            // Basic validation
+            if (!mediaType.value) {
+                e.preventDefault();
+                mediaType.focus();
+                mediaType.classList.add('is-invalid');
+                return;
+            }
+            
+            if (!title.value.trim()) {
+                e.preventDefault();
+                title.focus();
+                title.classList.add('is-invalid');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+            }
+        });
+    }
+    
+    // Remove validation classes on input
+    document.querySelectorAll('input, select, textarea').forEach(input => {
+        input.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+    
+    // Character counter for description
+    const description = document.querySelector('textarea[name="description"]');
+    if (description) {
+        const maxLength = 500;
+        
+        // Create counter element
+        const counter = document.createElement('div');
+        counter.className = 'form-text text-end';
+        counter.innerHTML = `<span id="charCount">0</span>/${maxLength} caracteres`;
+        description.parentNode.appendChild(counter);
+        
+        const charCount = document.getElementById('charCount');
+        
+        description.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = length;
+            
+            if (length > maxLength * 0.9) {
+                charCount.parentElement.classList.add('text-warning');
+            } else {
+                charCount.parentElement.classList.remove('text-warning');
+            }
+            
+            if (length > maxLength) {
+                charCount.parentElement.classList.add('text-danger');
+                charCount.parentElement.classList.remove('text-warning');
+            } else {
+                charCount.parentElement.classList.remove('text-danger');
+            }
+        });
+        
+        // Initial count
+        description.dispatchEvent(new Event('input'));
+    }
+    
+    // Auto-suggest for popular titles (could be implemented with AJAX)
+    const titleInput = document.querySelector('input[name="title"]');
+    if (titleInput) {
+        titleInput.addEventListener('input', function() {
+            // Future: Implement TMDB API search suggestions
+            // This would help users find the exact title and reduce duplicates
+        });
+    }
+});
+</script>
+{% endblock %}

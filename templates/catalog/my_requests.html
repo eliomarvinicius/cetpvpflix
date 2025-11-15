@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Minhas Solicitações - CETPVPFLIX{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="bg-dark text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h2 mb-3">
+                    <i class="fas fa-list text-orange me-3"></i>Minhas Solicitações
+                </h1>
+                <p class="mb-0 text-muted">Acompanhe o status das suas solicitações de conteúdo</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'catalog:request_content' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Nova Solicitação
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Lista de Solicitações -->
+<section class="py-5">
+    <div class="container">
+        {% if requests %}
+            <div class="row">
+                {% for request in requests %}
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title mb-0">{{ request.title }}</h5>
+                                <span class="badge {% if request.status == 'approved' %}bg-success{% elif request.status == 'rejected' %}bg-danger{% elif request.status == 'added' %}bg-info{% else %}bg-warning text-dark{% endif %} fs-6">
+                                    {{ request.get_status_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge {% if request.media_type == 'movie' %}bg-primary{% else %}bg-success{% endif %}">
+                                    {% if request.media_type == 'movie' %}🎬 Filme{% else %}📺 Série{% endif %}
+                                </span>
+                                {% if request.year %}
+                                    <span class="badge bg-secondary">{{ request.year }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if request.description %}
+                            <p class="text-muted mb-3">{{ request.description|truncatechars:150 }}</p>
+                            {% endif %}
+                            
+                            {% if request.admin_notes %}
+                            <div class="alert alert-info py-2">
+                                <small><strong>Notas do administrador:</strong></small>
+                                <br><small>{{ request.admin_notes }}</small>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Solicitado em {{ request.created_at|date:"d/m/Y" }}
+                                </small>
+                                {% if request.updated_at != request.created_at %}
+                                <small class="text-muted">
+                                    Atualizado em {{ request.updated_at|date:"d/m/Y" }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Paginação -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Navegação de páginas" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                Próxima <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+        {% else %}
+            <!-- Estado vazio -->
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted mb-3">Nenhuma solicitação ainda</h3>
+                <p class="text-muted mb-4">
+                    Você ainda não fez nenhuma solicitação de conteúdo.
+                </p>
+                
+                <a href="{% url 'catalog:request_content' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus me-2"></i>Fazer Primeira Solicitação
+                </a>
+                
+                <div class="mt-4">
+                    <small class="text-muted">
+                        💡 Dica: Não encontrou o filme ou série que procura? Faça uma solicitação e nossa equipe irá analisar!
+                    </small>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Estatísticas das Solicitações -->
+<section class="bg-light py-5">
+    <div class="container">
+        <h4 class="text-center mb-4">Suas Estatísticas</h4>
+        <div class="row text-center">
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-list fa-2x text-primary mb-3"></i>
+                        <h3 class="h4 text-primary">{{ requests.count }}</h3>
+                        <p class="text-muted mb-0">Total de Solicitações</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-clock fa-2x text-warning mb-3"></i>
+                        <h3 class="h4 text-warning">{{ requests_pending }}</h3>
+                        <p class="text-muted mb-0">Pendentes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                        <h3 class="h4 text-success">{{ requests_approved }}</h3>
+                        <p class="text-muted mb-0">Aprovadas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 h-100">
+                    <div class="card-body">
+                        <i class="fas fa-plus-circle fa-2x text-info mb-3"></i>
+                        <h3 class="h4 text-info">{{ requests_added }}</h3>
+                        <p class="text-muted mb-0">Adicionadas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

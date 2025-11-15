@@ -366,7 +366,7 @@
                 <h5 class="modal-title" id="requestModalLabel">Solicitar Novo Conteúdo</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <form method="POST" action="{% url 'catalog:content_request' %}">
+            <form method="POST" action="{% url 'catalog:request_content' %}">
                 <div class="modal-body">
                     {% csrf_token %}
                     

@@ -57,24 +57,64 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         
-        # Estatísticas do usuário
-        context['stats'] = {
-            'total_favorites': Favorite.objects.filter(user=user).count(),
-            'total_reviews': Review.objects.filter(user=user).count(),
-            'average_rating': Review.objects.filter(user=user).aggregate(
-                avg=models.Avg('rating')
-            )['avg'] or 0,
-        }
+        # Favoritos
+        favorites = Favorite.objects.filter(user=user)
+        context['favorites'] = favorites[:12]  # Primeiros 12 para exibir
+        context['favorites_count'] = favorites.count()
+        
+        # Avaliações
+        user_reviews = Review.objects.filter(user=user).select_related('media')
+        context['user_reviews'] = user_reviews[:10]  # Primeiras 10 para exibir
+        context['reviews_count'] = user_reviews.count()
+        
+        # Solicitações de conteúdo
+        from catalog.models import ContentRequest
+        content_requests = ContentRequest.objects.filter(user=user)
+        context['content_requests'] = content_requests[:6]  # Primeiras 6 para exibir
+        context['requests_count'] = content_requests.count()
+        
+        # Likes recebidos nas avaliações
+        context['likes_received'] = sum(review.likes.count() for review in user_reviews)
+        
+        # Atividade recente (combinando favoritos, reviews e solicitações)
+        recent_activities = []
         
         # Favoritos recentes
-        context['recent_favorites'] = Favorite.objects.filter(
-            user=user
-        ).select_related('media').order_by('-created_at')[:6]
+        for fav in favorites.order_by('-created_at')[:5]:
+            recent_activities.append({
+                'type': 'favorite',
+                'description': f'Adicionou "{fav.media.title}" aos favoritos',
+                'details': f'Filme' if fav.media.media_type == 'movie' else 'Série',
+                'timestamp': fav.created_at
+            })
         
-        # Avaliações recentes
-        context['recent_reviews'] = Review.objects.filter(
-            user=user
-        ).select_related('media').order_by('-created_at')[:6]
+        # Reviews recentes
+        for review in user_reviews.order_by('-created_at')[:5]:
+            recent_activities.append({
+                'type': 'review',
+                'description': f'Avaliou "{review.media.title}"',
+                'details': f'{review.rating} estrelas - {review.comment[:50]}...' if review.comment else f'{review.rating} estrelas',
+                'timestamp': review.created_at
+            })
+        
+        # Solicitações recentes
+        for request in content_requests.order_by('-created_at')[:3]:
+            recent_activities.append({
+                'type': 'request',
+                'description': f'Solicitou "{request.title}"',
+                'details': f'Status: {request.get_status_display()}',
+                'timestamp': request.created_at
+            })
+        
+        # Ordenar atividades por data e pegar as 10 mais recentes
+        context['recent_activities'] = sorted(
+            recent_activities, 
+            key=lambda x: x['timestamp'], 
+            reverse=True
+        )[:10]
+        
+        # Perfil do usuário (se tiver model de perfil separado, senão usar dados do User)
+        context['profile'] = user  # ou user.profile se tiver um modelo Profile separado
         
         return context
 

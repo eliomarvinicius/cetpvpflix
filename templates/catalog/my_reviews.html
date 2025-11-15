@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Minhas Avaliações - CETPVPFLIX{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="bg-dark text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h2 mb-3">
+                    <i class="fas fa-star text-orange me-3"></i>Minhas Avaliações
+                </h1>
+                <p class="mb-0 text-muted">Suas opiniões e avaliações sobre filmes e séries</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex flex-column align-items-end">
+                    <div class="bg-orange px-3 py-2 rounded mb-2">
+                        <strong>{{ reviews.count }} avaliação{{ reviews.count|pluralize:"ções" }}</strong>
+                    </div>
+                    {% if reviews %}
+                    <small class="text-muted">
+                        Média das suas avaliações: 
+                        <span class="text-orange">{{ user_average_rating|floatformat:1 }}/5</span>
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros e Estatísticas -->
+<section class="bg-light py-3">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex gap-3 align-items-center">
+                    <!-- Filtro por avaliação -->
+                    <select class="form-select" id="ratingFilter" style="max-width: 180px;">
+                        <option value="">Todas as avaliações</option>
+                        <option value="5">5 Estrelas ⭐⭐⭐⭐⭐</option>
+                        <option value="4">4 Estrelas ⭐⭐⭐⭐</option>
+                        <option value="3">3 Estrelas ⭐⭐⭐</option>
+                        <option value="2">2 Estrelas ⭐⭐</option>
+                        <option value="1">1 Estrela ⭐</option>
+                    </select>
+                    
+                    <!-- Filtro por tipo -->
+                    <select class="form-select" id="typeFilter" style="max-width: 150px;">
+                        <option value="">Todos os tipos</option>
+                        <option value="movie">Filmes</option>
+                        <option value="tv">Séries</option>
+                    </select>
+                    
+                    <!-- Ordenação -->
+                    <select class="form-select" id="sortBy" style="max-width: 200px;">
+                        <option value="-created_at">Mais recente</option>
+                        <option value="created_at">Mais antiga</option>
+                        <option value="-rating">Maior avaliação</option>
+                        <option value="rating">Menor avaliação</option>
+                        <option value="media__title">Título (A-Z)</option>
+                        <option value="-media__title">Título (Z-A)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                {% if reviews %}
+                <div class="d-flex gap-2 justify-content-end">
+                    <span class="badge bg-success">{{ reviews_with_comments }} com comentários</span>
+                    <span class="badge bg-info">{{ total_likes_received }} likes recebidos</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Lista de Avaliações -->
+<section class="py-5">
+    <div class="container">
+        {% if reviews %}
+            <div id="reviewsList">
+                {% for review in reviews %}
+                <div class="card mb-4 review-item" 
+                     data-rating="{{ review.rating }}"
+                     data-type="{{ review.media.media_type }}"
+                     data-title="{{ review.media.title|lower }}"
+                     data-date="{{ review.created_at|date:'Y-m-d' }}">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Poster do Filme/Série -->
+                            <div class="col-md-2 mb-3 mb-md-0">
+                                <a href="{% url 'catalog:media_detail' review.media.pk %}">
+                                    {% if review.media.poster_path %}
+                                        <img src="https://image.tmdb.org/t/p/w300{{ review.media.poster_path }}" 
+                                             alt="{{ review.media.title }}" 
+                                             class="img-fluid rounded shadow-sm"
+                                             style="height: 180px; width: 100%; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-secondary rounded d-flex align-items-center justify-content-center text-white" 
+                                             style="height: 180px;">
+                                            <i class="fas {% if review.media.media_type == 'tv' %}fa-tv{% else %}fa-film{% endif %} fa-3x"></i>
+                                        </div>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            
+                            <!-- Informações da Avaliação -->
+                            <div class="col-md-8">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="mb-1">
+                                            <a href="{% url 'catalog:media_detail' review.media.pk %}" 
+                                               class="text-decoration-none">{{ review.media.title }}</a>
+                                        </h5>
+                                        
+                                        <!-- Badges -->
+                                        <div class="d-flex gap-2 mb-2">
+                                            <span class="badge {% if review.media.media_type == 'movie' %}bg-primary{% else %}bg-success{% endif %}">
+                                                {% if review.media.media_type == 'movie' %}Filme{% else %}Série{% endif %}
+                                            </span>
+                                            {% if review.media.release_date %}
+                                                <span class="badge bg-secondary">{{ review.media.release_date.year }}</span>
+                                            {% endif %}
+                                            {% if review.media.vote_average %}
+                                                <span class="badge bg-warning text-dark">
+                                                    TMDB: {{ review.media.vote_average|floatformat:1 }}/10
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Sua Avaliação -->
+                                        <div class="d-flex align-items-center mb-3">
+                                            <strong class="me-2">Sua avaliação:</strong>
+                                            <div class="stars me-2">
+                                                {% for i in "12345" %}
+                                                    {% if forloop.counter <= review.rating %}
+                                                        <i class="fas fa-star text-warning"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star text-muted"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            <span class="badge bg-orange text-white">{{ review.rating }}/5</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <small class="text-muted">{{ review.created_at|date:"d/m/Y H:i" }}</small>
+                                </div>
+                                
+                                <!-- Comentário -->
+                                {% if review.comment %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">Seu comentário:</h6>
+                                    <p class="border-start border-orange border-3 ps-3 mb-0" style="font-style: italic;">
+                                        "{{ review.comment }}"
+                                    </p>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Estatísticas da Avaliação -->
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center text-muted">
+                                        <i class="fas fa-thumbs-up me-2"></i>
+                                        <span>{{ review.likes.count }} like{{ review.likes.count|pluralize }}</span>
+                                        {% if review.comment %}
+                                            <span class="ms-3">
+                                                <i class="fas fa-comment me-1"></i>
+                                                {{ review.comment|length }} caracteres
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Ações -->
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'catalog:media_detail' review.media.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>Ver Detalhes
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-secondary edit-review-btn"
+                                                data-review-id="{{ review.pk }}"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editReviewModal">
+                                            <i class="fas fa-edit me-1"></i>Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-review-btn"
+                                                data-review-id="{{ review.pk }}"
+                                                data-media-title="{{ review.media.title }}">
+                                            <i class="fas fa-trash me-1"></i>Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Gêneros -->
+                            <div class="col-md-2">
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-2">Gêneros:</small>
+                                    {% for genre in review.media.genres.all %}
+                                        <span class="badge bg-light text-dark mb-1" style="font-size: 0.7rem;">
+                                            {{ genre.name }}
+                                        </span>
+                                    {% empty %}
+                                        <small class="text-muted">Não informado</small>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Paginação -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Navegação de páginas" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                Próxima <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+        {% else %}
+            <!-- Estado vazio -->
+            <div class="text-center py-5">
+                <i class="fas fa-star fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted mb-3">Você ainda não fez nenhuma avaliação</h3>
+                <p class="text-muted mb-4">
+                    Comece a avaliar filmes e séries para compartilhar suas opiniões!
+                </p>
+                
+                <div class="d-flex gap-3 justify-content-center">
+                    <a href="{% url 'catalog:movies' %}" class="btn btn-primary">
+                        <i class="fas fa-film me-2"></i>Explorar Filmes
+                    </a>
+                    <a href="{% url 'catalog:tv_shows' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-tv me-2"></i>Explorar Séries
+                    </a>
+                </div>
+                
+                <div class="mt-4">
+                    <small class="text-muted">
+                        💡 Dica: Acesse qualquer filme ou série e clique em "Avaliar" para deixar sua opinião!
+                    </small>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Modal para Edição de Avaliação -->
+<div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editReviewModalLabel">Editar Avaliação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" id="editReviewForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Sua Avaliação</label>
+                        <div class="rating-input">
+                            {% for i in "12345" %}
+                            <input type="radio" name="rating" value="{{ forloop.counter }}" 
+                                   id="edit_star{{ forloop.counter }}" required>
+                            <label for="edit_star{{ forloop.counter }}"><i class="far fa-star"></i></label>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">Clique nas estrelas para alterar sua avaliação</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_comment" class="form-label">Comentário (opcional)</label>
+                        <textarea class="form-control" name="comment" id="edit_comment" rows="4" 
+                                  placeholder="Compartilhe sua opinião..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Atualizar Avaliação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Exclusão -->
+<div class="modal fade" id="deleteReviewModal" tabindex="-1" aria-labelledby="deleteReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteReviewModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir sua avaliação de <strong id="deleteMediaTitle"></strong>?</p>
+                <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" id="deleteReviewForm" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Excluir Avaliação</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.rating-input input {
+    display: none;
+}
+
+.rating-input label {
+    cursor: pointer;
+    font-size: 2rem;
+    color: #ddd;
+    transition: all 0.2s ease;
+}
+
+.rating-input label:hover {
+    color: var(--primary-orange);
+    transform: scale(1.1);
+}
+
+.rating-input input:checked ~ label,
+.rating-input input:checked ~ label ~ label {
+    color: var(--primary-orange);
+}
+
+.rating-input label:hover ~ label {
+    color: var(--primary-orange);
+}
+
+.review-item {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.review-item:hover {
+    border-left-color: var(--primary-orange);
+    transform: translateX(5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.stars {
+    letter-spacing: 0.1rem;
+}
+
+@media (max-width: 768px) {
+    .review-item:hover {
+        transform: none;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const ratingFilter = document.getElementById('ratingFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const sortBy = document.getElementById('sortBy');
+    const reviewItems = document.querySelectorAll('.review-item');
+    
+    // Filtros e ordenação
+    function applyFilters() {
+        const ratingValue = ratingFilter.value;
+        const typeValue = typeFilter.value;
+        let visibleItems = [];
+        
+        reviewItems.forEach(item => {
+            let show = true;
+            
+            // Filtro por avaliação
+            if (ratingValue && item.dataset.rating !== ratingValue) {
+                show = false;
+            }
+            
+            // Filtro por tipo
+            if (typeValue && item.dataset.type !== typeValue) {
+                show = false;
+            }
+            
+            if (show) {
+                item.style.display = '';
+                visibleItems.push(item);
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        return visibleItems;
+    }
+    
+    function sortItems(items) {
+        const sortValue = sortBy.value;
+        const container = document.getElementById('reviewsList');
+        
+        const sortedItems = Array.from(items).sort((a, b) => {
+            let aValue, bValue;
+            
+            switch (sortValue) {
+                case '-created_at':
+                    aValue = new Date(a.dataset.date);
+                    bValue = new Date(b.dataset.date);
+                    return bValue - aValue;
+                case 'created_at':
+                    aValue = new Date(a.dataset.date);
+                    bValue = new Date(b.dataset.date);
+                    return aValue - bValue;
+                case '-rating':
+                    aValue = parseInt(a.dataset.rating);
+                    bValue = parseInt(b.dataset.rating);
+                    return bValue - aValue;
+                case 'rating':
+                    aValue = parseInt(a.dataset.rating);
+                    bValue = parseInt(b.dataset.rating);
+                    return aValue - bValue;
+                case 'media__title':
+                    return a.dataset.title.localeCompare(b.dataset.title);
+                case '-media__title':
+                    return b.dataset.title.localeCompare(a.dataset.title);
+                default:
+                    return 0;
+            }
+        });
+        
+        // Remover todos os itens do container
+        sortedItems.forEach(item => {
+            if (item.parentNode) {
+                item.parentNode.removeChild(item);
+            }
+        });
+        
+        // Adicionar os itens ordenados de volta
+        sortedItems.forEach(item => {
+            container.appendChild(item);
+        });
+    }
+    
+    // Event listeners para filtros
+    if (ratingFilter) {
+        ratingFilter.addEventListener('change', function() {
+            const visibleItems = applyFilters();
+            sortItems(visibleItems);
+        });
+    }
+    
+    if (typeFilter) {
+        typeFilter.addEventListener('change', function() {
+            const visibleItems = applyFilters();
+            sortItems(visibleItems);
+        });
+    }
+    
+    if (sortBy) {
+        sortBy.addEventListener('change', function() {
+            const visibleItems = applyFilters();
+            sortItems(visibleItems);
+        });
+    }
+    
+    // Edição de avaliações
+    document.querySelectorAll('.edit-review-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const reviewId = this.dataset.reviewId;
+            const form = document.getElementById('editReviewForm');
+            
+            // Definir action do formulário
+            form.action = `{% url 'reviews:edit_review' 0 %}`.replace('0', reviewId);
+            
+            // Buscar dados da avaliação atual via AJAX (opcional)
+            // Por agora, deixamos o usuário preencher novamente
+        });
+    });
+    
+    // Exclusão de avaliações
+    document.querySelectorAll('.delete-review-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const reviewId = this.dataset.reviewId;
+            const mediaTitle = this.dataset.mediaTitle;
+            const form = document.getElementById('deleteReviewForm');
+            const titleElement = document.getElementById('deleteMediaTitle');
+            
+            // Definir action do formulário
+            form.action = `{% url 'reviews:delete_review' 0 %}`.replace('0', reviewId);
+            titleElement.textContent = mediaTitle;
+            
+            // Mostrar modal
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteReviewModal'));
+            deleteModal.show();
+        });
+    });
+});
+</script>
+{% endblock %}
