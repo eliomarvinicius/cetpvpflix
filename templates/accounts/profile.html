@@ -1,0 +1,458 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meu Perfil - CETPVPFLIX{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="bg-dark text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center mb-4 mb-md-0">
+                <!-- Avatar -->
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="{{ user.get_full_name }}" 
+                         class="rounded-circle img-fluid border border-orange border-3"
+                         style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-orange rounded-circle mx-auto d-flex align-items-center justify-content-center text-white"
+                         style="width: 150px; height: 150px; font-size: 3rem;">
+                        {{ user.first_name.0|default:user.username.0|upper }}{{ user.last_name.0|default:"" }}
+                    </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <a href="{% url 'accounts:edit_profile' %}" class="btn btn-outline-light">
+                        <i class="fas fa-edit me-2"></i>Editar Perfil
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h1 class="h2 mb-2">{{ user.get_full_name|default:user.username }}</h1>
+                        <p class="text-muted mb-0">@{{ user.username }}</p>
+                        {% if profile.bio %}
+                        <p class="mt-3 mb-0">{{ profile.bio }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="text-end">
+                        <small class="text-muted">Membro desde</small>
+                        <div class="text-white">{{ user.date_joined|date:"F Y" }}</div>
+                    </div>
+                </div>
+                
+                <!-- Estatísticas -->
+                <div class="row text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="border-end">
+                            <h3 class="h4 mb-0 text-orange">{{ favorites_count }}</h3>
+                            <small>Favorito{{ favorites_count|pluralize }}</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border-end">
+                            <h3 class="h4 mb-0 text-orange">{{ reviews_count }}</h3>
+                            <small>Avaliações</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border-end">
+                            <h3 class="h4 mb-0 text-orange">{{ requests_count }}</h3>
+                            <small>Solicitações</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <h3 class="h4 mb-0 text-orange">{{ likes_received }}</h3>
+                        <small>Likes Recebidos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Navegação das Abas -->
+<section class="bg-light py-3">
+    <div class="container">
+        <ul class="nav nav-pills nav-fill" id="profileTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="favorites-tab" data-bs-toggle="pill" 
+                        data-bs-target="#favorites" type="button" role="tab">
+                    <i class="fas fa-heart me-2"></i>Favoritos
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reviews-tab" data-bs-toggle="pill" 
+                        data-bs-target="#reviews" type="button" role="tab">
+                    <i class="fas fa-star me-2"></i>Minhas Avaliações
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="requests-tab" data-bs-toggle="pill" 
+                        data-bs-target="#requests" type="button" role="tab">
+                    <i class="fas fa-plus me-2"></i>Solicitações
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="activity-tab" data-bs-toggle="pill" 
+                        data-bs-target="#activity" type="button" role="tab">
+                    <i class="fas fa-clock me-2"></i>Atividade Recente
+                </button>
+            </li>
+        </ul>
+    </div>
+</section>
+
+<!-- Conteúdo das Abas -->
+<section class="py-5">
+    <div class="container">
+        <div class="tab-content" id="profileTabsContent">
+            
+            <!-- Aba Favoritos -->
+            <div class="tab-pane fade show active" id="favorites" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Meus Favoritos</h3>
+                    <div class="d-flex gap-2">
+                        <select class="form-select" id="favoritesFilter" style="max-width: 200px;">
+                            <option value="">Todos</option>
+                            <option value="movie">Filmes</option>
+                            <option value="tv">Séries</option>
+                        </select>
+                    </div>
+                </div>
+                
+                {% if favorites %}
+                <div class="row" id="favoritesGrid">
+                    {% for favorite in favorites %}
+                    <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4" data-type="{{ favorite.media.media_type }}">
+                        <div class="card movie-card h-100">
+                            <a href="{% url 'catalog:media_detail' favorite.media.pk %}" class="position-relative">
+                                {% if favorite.media.poster_path %}
+                                    <img src="https://image.tmdb.org/t/p/w500{{ favorite.media.poster_path }}" 
+                                         alt="{{ favorite.media.title }}" class="card-img-top">
+                                {% else %}
+                                    <div class="bg-secondary d-flex align-items-center justify-content-center" 
+                                         style="height: 300px;">
+                                        <i class="fas {% if favorite.media.media_type == 'tv' %}fa-tv{% else %}fa-film{% endif %} fa-3x text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Remove from favorites -->
+                                <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 remove-favorite"
+                                        data-media-id="{{ favorite.media.pk }}" title="Remover dos favoritos">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </a>
+                            
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1">
+                                    <a href="{% url 'catalog:media_detail' favorite.media.pk %}" 
+                                       class="text-decoration-none text-dark">{{ favorite.media.title|truncatechars:25 }}</a>
+                                </h6>
+                                <small class="text-muted">
+                                    Adicionado em {{ favorite.created_at|date:"d/m/Y" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-heart fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhum favorito ainda</h4>
+                    <p>Comece a adicionar filmes e séries aos seus favoritos!</p>
+                    <a href="{% url 'catalog:movies' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-film me-2"></i>Explorar Filmes
+                    </a>
+                    <a href="{% url 'catalog:tv_shows' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-tv me-2"></i>Explorar Séries
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Aba Avaliações -->
+            <div class="tab-pane fade" id="reviews" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Minhas Avaliações</h3>
+                    <select class="form-select" style="max-width: 200px;">
+                        <option value="">Todas</option>
+                        <option value="5">5 Estrelas</option>
+                        <option value="4">4 Estrelas</option>
+                        <option value="3">3 Estrelas</option>
+                        <option value="2">2 Estrelas</option>
+                        <option value="1">1 Estrela</option>
+                    </select>
+                </div>
+                
+                {% if user_reviews %}
+                <div class="row">
+                    {% for review in user_reviews %}
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <a href="{% url 'catalog:media_detail' review.media.pk %}">
+                                            {% if review.media.poster_path %}
+                                                <img src="https://image.tmdb.org/t/p/w200{{ review.media.poster_path }}" 
+                                                     alt="{{ review.media.title }}" class="img-fluid rounded">
+                                            {% else %}
+                                                <div class="bg-secondary rounded d-flex align-items-center justify-content-center"
+                                                     style="height: 120px;">
+                                                    <i class="fas {% if review.media.media_type == 'tv' %}fa-tv{% else %}fa-film{% endif %} fa-2x text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                    <div class="col-md-10">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h5 class="mb-1">
+                                                    <a href="{% url 'catalog:media_detail' review.media.pk %}" 
+                                                       class="text-decoration-none">{{ review.media.title }}</a>
+                                                </h5>
+                                                <div class="stars mb-2">
+                                                    {% for i in "12345" %}
+                                                        {% if forloop.counter <= review.rating %}
+                                                            <i class="fas fa-star text-warning"></i>
+                                                        {% else %}
+                                                            <i class="far fa-star text-muted"></i>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <span class="ms-2 text-muted">{{ review.rating }}/5</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <small class="text-muted">{{ review.created_at|date:"d/m/Y H:i" }}</small>
+                                                <div class="mt-2">
+                                                    <a href="{% url 'reviews:edit_review' review.pk %}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'reviews:delete_review' review.pk %}" 
+                                                       class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {% if review.comment %}
+                                        <p class="mb-3">{{ review.comment }}</p>
+                                        {% endif %}
+                                        
+                                        <div class="d-flex align-items-center text-muted">
+                                            <i class="fas fa-thumbs-up me-1"></i>
+                                            <span>{{ review.likes.count }} like{{ review.likes.count|pluralize }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-star fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhuma avaliação ainda</h4>
+                    <p>Comece a avaliar filmes e séries para compartilhar suas opiniões!</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Aba Solicitações -->
+            <div class="tab-pane fade" id="requests" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Minhas Solicitações</h3>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#requestModal">
+                        <i class="fas fa-plus me-2"></i>Nova Solicitação
+                    </button>
+                </div>
+                
+                {% if content_requests %}
+                <div class="row">
+                    {% for request in content_requests %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h6 class="card-title mb-0">{{ request.title }}</h6>
+                                    <span class="badge {% if request.status == 'approved' %}bg-success{% elif request.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {% if request.status == 'pending' %}Pendente
+                                        {% elif request.status == 'approved' %}Aprovada
+                                        {% elif request.status == 'rejected' %}Rejeitada
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                {% if request.reason %}
+                                <p class="text-muted small">{{ request.reason|truncatechars:100 }}</p>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        {{ request.created_at|date:"d/m/Y" }}
+                                    </small>
+                                    <span class="badge bg-secondary">
+                                        {% if request.media_type == 'movie' %}Filme{% else %}Série{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-plus-circle fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhuma solicitação feita</h4>
+                    <p>Não encontrou o que procura? Solicite a adição de novos conteúdos!</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#requestModal">
+                        <i class="fas fa-plus me-2"></i>Fazer Primeira Solicitação
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Aba Atividade Recente -->
+            <div class="tab-pane fade" id="activity" role="tabpanel">
+                <h3 class="mb-4">Atividade Recente</h3>
+                
+                {% if recent_activities %}
+                <div class="timeline">
+                    {% for activity in recent_activities %}
+                    <div class="timeline-item mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="bg-orange text-white rounded-circle d-flex align-items-center justify-content-center"
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas {% if activity.type == 'review' %}fa-star{% elif activity.type == 'favorite' %}fa-heart{% else %}fa-plus{% endif %}"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1">{{ activity.description }}</h6>
+                                    <small class="text-muted">{{ activity.timestamp|timesince }} atrás</small>
+                                </div>
+                                <p class="text-muted mb-0">{{ activity.details }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-clock fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhuma atividade ainda</h4>
+                    <p>Sua atividade aparecerá aqui quando você interagir com o site!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal para Nova Solicitação -->
+<div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="requestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="requestModalLabel">Solicitar Novo Conteúdo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'catalog:content_request' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="mediaType" class="form-label">Tipo de Mídia</label>
+                        <select class="form-select" name="media_type" id="mediaType" required>
+                            <option value="">Selecione...</option>
+                            <option value="movie">Filme</option>
+                            <option value="tv">Série</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mediaTitle" class="form-label">Título</label>
+                        <input type="text" class="form-control" name="title" id="mediaTitle" 
+                               placeholder="Nome do filme ou série" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="requestReason" class="form-label">Motivo da Solicitação (opcional)</label>
+                        <textarea class="form-control" name="reason" id="requestReason" rows="3" 
+                                  placeholder="Explique por que gostaria que este conteúdo fosse adicionado..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Enviar Solicitação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtro de favoritos
+    const favoritesFilter = document.getElementById('favoritesFilter');
+    if (favoritesFilter) {
+        favoritesFilter.addEventListener('change', function() {
+            const filterValue = this.value;
+            const items = document.querySelectorAll('#favoritesGrid > div');
+            
+            items.forEach(item => {
+                if (!filterValue || item.dataset.type === filterValue) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Remover dos favoritos
+    document.querySelectorAll('.remove-favorite').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (!confirm('Remover dos favoritos?')) return;
+            
+            const mediaId = this.dataset.mediaId;
+            
+            fetch(`/catalog/favorites/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({media_id: mediaId})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.is_favorite) {
+                    this.closest('.col-lg-2').remove();
+                    
+                    // Verificar se não há mais favoritos
+                    if (document.querySelectorAll('#favoritesGrid > div').length === 0) {
+                        location.reload();
+                    }
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+    });
+});
+</script>
+{% endblock %}

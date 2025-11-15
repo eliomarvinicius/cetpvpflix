@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Séries - CETPVPFLIX{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="bg-dark text-white py-4">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="h2 mb-0">
+                    <i class="fas fa-tv text-orange"></i> Catálogo de Séries
+                </h1>
+                <p class="mb-0 text-muted">{{ tv_shows_count }} séries disponíveis</p>
+            </div>
+            <div class="col-md-6">
+                <!-- Filtros -->
+                <form method="GET" class="d-flex gap-2">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Buscar séries..." value="{{ request.GET.search }}">
+                    <select name="genre" class="form-select" style="max-width: 200px;">
+                        <option value="">Todos os Gêneros</option>
+                        {% for genre in genres %}
+                        <option value="{{ genre.id }}" 
+                                {% if request.GET.genre == genre.id|stringformat:"s" %}selected{% endif %}>
+                            {{ genre.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros Avançados -->
+<section class="py-3 bg-light">
+    <div class="container">
+        <form method="GET" class="row g-3 align-items-end">
+            <!-- Manter busca atual -->
+            {% if request.GET.search %}
+            <input type="hidden" name="search" value="{{ request.GET.search }}">
+            {% endif %}
+            
+            <div class="col-md-3">
+                <label class="form-label">Ordenar por:</label>
+                <select name="ordering" class="form-select">
+                    <option value="-vote_average" {% if request.GET.ordering == "-vote_average" %}selected{% endif %}>
+                        Melhor Avaliação
+                    </option>
+                    <option value="-release_date" {% if request.GET.ordering == "-release_date" %}selected{% endif %}>
+                        Mais Recente
+                    </option>
+                    <option value="release_date" {% if request.GET.ordering == "release_date" %}selected{% endif %}>
+                        Mais Antigo
+                    </option>
+                    <option value="title" {% if request.GET.ordering == "title" %}selected{% endif %}>
+                        A-Z
+                    </option>
+                    <option value="-title" {% if request.GET.ordering == "-title" %}selected{% endif %}>
+                        Z-A
+                    </option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Ano de Lançamento:</label>
+                <select name="year" class="form-select">
+                    <option value="">Todos os Anos</option>
+                    {% for year in years %}
+                    <option value="{{ year }}" 
+                            {% if request.GET.year == year|stringformat:"s" %}selected{% endif %}>
+                        {{ year }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Status:</label>
+                <select name="status" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="ended" {% if request.GET.status == "ended" %}selected{% endif %}>Finalizada</option>
+                    <option value="returning" {% if request.GET.status == "returning" %}selected{% endif %}>Renovada</option>
+                    <option value="canceled" {% if request.GET.status == "canceled" %}selected{% endif %}>Cancelada</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Aplicar Filtros
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- Séries Grid -->
+<section class="py-5">
+    <div class="container">
+        {% if tv_shows %}
+        <div class="row">
+            {% for show in tv_shows %}
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+                <div class="card movie-card h-100">
+                    <a href="{% url 'catalog:media_detail' show.pk %}" class="position-relative">
+                        {% if show.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" 
+                                 alt="{{ show.title }}" class="card-img-top">
+                        {% else %}
+                            <div class="bg-secondary d-flex align-items-center justify-content-center" 
+                                 style="height: 400px;">
+                                <i class="fas fa-tv fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Rating Badge -->
+                        {% if show.vote_average %}
+                        <span class="position-absolute top-0 start-0 bg-orange text-white px-2 py-1 rounded-end">
+                            <i class="fas fa-star"></i> {{ show.vote_average|floatformat:1 }}
+                        </span>
+                        {% endif %}
+                        
+                        <!-- Favorite Badge -->
+                        {% if user.is_authenticated and show in user_favorites %}
+                        <span class="position-absolute top-0 end-0 text-danger p-2">
+                            <i class="fas fa-heart"></i>
+                        </span>
+                        {% endif %}
+                        
+                        <!-- Status Badge -->
+                        {% if show.status %}
+                        <span class="position-absolute bottom-0 start-0 bg-dark bg-opacity-75 text-white px-2 py-1 small">
+                            {% if show.status == 'ended' %}
+                                Finalizada
+                            {% elif show.status == 'returning' %}
+                                Renovada
+                            {% elif show.status == 'canceled' %}
+                                Cancelada
+                            {% else %}
+                                {{ show.status|title }}
+                            {% endif %}
+                        </span>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2">
+                            <a href="{% url 'catalog:media_detail' show.pk %}" 
+                               class="text-decoration-none text-dark">{{ show.title|truncatechars:30 }}</a>
+                        </h6>
+                        
+                        <div class="mb-2">
+                            {% if show.genres.exists %}
+                                {% for genre in show.genres.all|slice:":2" %}
+                                    <span class="badge bg-secondary me-1">{{ genre.name }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Informações da série -->
+                        <div class="mb-2">
+                            {% if show.number_of_seasons %}
+                            <small class="text-muted d-block">
+                                <i class="fas fa-list"></i> 
+                                {{ show.number_of_seasons }} temporada{{ show.number_of_seasons|pluralize }}
+                            </small>
+                            {% endif %}
+                            {% if show.number_of_episodes %}
+                            <small class="text-muted d-block">
+                                <i class="fas fa-play-circle"></i> 
+                                {{ show.number_of_episodes }} episódio{{ show.number_of_episodes|pluralize }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="stars">
+                                {% with rating_stars=show.vote_average|floatformat:0|add:0 %}
+                                    {% if rating_stars >= 9 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                    {% elif rating_stars >= 8 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star star-empty"></i>
+                                    {% elif rating_stars >= 6 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% elif rating_stars >= 4 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% elif rating_stars >= 2 %}
+                                        <i class="fas fa-star"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% else %}
+                                        <i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                            <small class="text-muted">
+                                {{ show.release_date.year|default:"N/A" }}
+                            </small>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        {% if user.is_authenticated %}
+                        <div class="mt-3 d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-danger favorite-btn flex-fill" 
+                                    data-media-id="{{ show.pk }}">
+                                {% if show in user_favorites %}
+                                    <i class="fas fa-heart"></i>
+                                {% else %}
+                                    <i class="far fa-heart"></i>
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'catalog:media_detail' show.pk %}#reviews" 
+                               class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="fas fa-star"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginação -->
+        {% if is_paginated %}
+        <nav aria-label="Navegação de páginas" class="mt-5">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i> Anterior</span>
+                    </li>
+                {% endif %}
+                
+                <!-- Números das páginas -->
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Próxima <i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <!-- Estado vazio -->
+        <div class="text-center py-5">
+            <i class="fas fa-tv fa-5x text-muted mb-4"></i>
+            <h3 class="text-muted">Nenhuma série encontrada</h3>
+            {% if request.GET.search %}
+                <p class="text-muted">Não encontramos resultados para "{{ request.GET.search }}"</p>
+                <a href="{% url 'catalog:tv_shows' %}" class="btn btn-primary">Ver Todas as Séries</a>
+            {% else %}
+                <p class="text-muted">As séries serão carregadas em breve!</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidade de favoritos
+    const favoriteButtons = document.querySelectorAll('.favorite-btn');
+    favoriteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const mediaId = this.dataset.mediaId;
+            const icon = this.querySelector('i');
+            
+            fetch(`/catalog/favorites/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({media_id: mediaId})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_favorite) {
+                    icon.className = 'fas fa-heart';
+                    this.classList.remove('btn-outline-danger');
+                    this.classList.add('btn-danger');
+                } else {
+                    icon.className = 'far fa-heart';
+                    this.classList.remove('btn-danger');
+                    this.classList.add('btn-outline-danger');
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+    });
+});
+</script>
+{% endblock %}

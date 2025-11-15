@@ -1,0 +1,404 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if query %}
+    Resultados para "{{ query }}" - CETPVPFLIX
+{% else %}
+    Buscar - CETPVPFLIX
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="bg-dark text-white py-4">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="h2 mb-0">
+                    <i class="fas fa-search text-orange"></i> 
+                    {% if query %}
+                        Resultados para "{{ query }}"
+                    {% else %}
+                        Buscar Conteúdo
+                    {% endif %}
+                </h1>
+                {% if query %}
+                <p class="mb-0 text-muted">{{ results|length }} resultado{{ results|length|pluralize }} encontrado{{ results|length|pluralize }}</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <!-- Formulário de Busca -->
+                <form method="GET" action="{% url 'catalog:search' %}" class="d-flex">
+                    <input type="text" name="q" class="form-control me-2" 
+                           placeholder="Digite o nome do filme ou série..." 
+                           value="{{ query }}" autofocus>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if query %}
+<!-- Filtros de Busca -->
+<section class="py-3 bg-light">
+    <div class="container">
+        <form method="GET" action="{% url 'catalog:search' %}" class="row g-3 align-items-end">
+            <input type="hidden" name="q" value="{{ query }}">
+            
+            <div class="col-md-3">
+                <label class="form-label">Tipo:</label>
+                <select name="type" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="movie" {% if request.GET.type == "movie" %}selected{% endif %}>Filmes</option>
+                    <option value="tv" {% if request.GET.type == "tv" %}selected{% endif %}>Séries</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Ordenar por:</label>
+                <select name="ordering" class="form-select">
+                    <option value="-popularity" {% if request.GET.ordering == "-popularity" %}selected{% endif %}>
+                        Popularidade
+                    </option>
+                    <option value="-vote_average" {% if request.GET.ordering == "-vote_average" %}selected{% endif %}>
+                        Melhor Avaliação
+                    </option>
+                    <option value="-release_date" {% if request.GET.ordering == "-release_date" %}selected{% endif %}>
+                        Mais Recente
+                    </option>
+                    <option value="title" {% if request.GET.ordering == "title" %}selected{% endif %}>
+                        A-Z
+                    </option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Ano:</label>
+                <select name="year" class="form-select">
+                    <option value="">Todos os Anos</option>
+                    {% for year in "2024,2023,2022,2021,2020,2019,2018,2017,2016,2015"|split:"," %}
+                    <option value="{{ year }}" {% if request.GET.year == year %}selected{% endif %}>
+                        {{ year }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- Resultados -->
+<section class="py-5">
+    <div class="container">
+        {% if results %}
+        <div class="row">
+            {% for media in results %}
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+                <div class="card movie-card h-100">
+                    <a href="{% url 'catalog:media_detail' media.pk %}" class="position-relative">
+                        {% if media.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ media.poster_path }}" 
+                                 alt="{{ media.title }}" class="card-img-top">
+                        {% else %}
+                            <div class="bg-secondary d-flex align-items-center justify-content-center" 
+                                 style="height: 400px;">
+                                {% if media.media_type == 'movie' %}
+                                    <i class="fas fa-film fa-3x text-muted"></i>
+                                {% else %}
+                                    <i class="fas fa-tv fa-3x text-muted"></i>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Media Type Badge -->
+                        <span class="position-absolute top-0 start-0 bg-primary text-white px-2 py-1 rounded-end small">
+                            {% if media.media_type == 'movie' %}
+                                <i class="fas fa-film me-1"></i>Filme
+                            {% else %}
+                                <i class="fas fa-tv me-1"></i>Série
+                            {% endif %}
+                        </span>
+                        
+                        <!-- Rating Badge -->
+                        {% if media.vote_average %}
+                        <span class="position-absolute top-0 end-0 bg-orange text-white px-2 py-1 rounded-start mt-4">
+                            <i class="fas fa-star"></i> {{ media.vote_average|floatformat:1 }}
+                        </span>
+                        {% endif %}
+                        
+                        <!-- Favorite Badge -->
+                        {% if user.is_authenticated and media in user_favorites %}
+                        <span class="position-absolute bottom-0 end-0 text-danger p-2">
+                            <i class="fas fa-heart"></i>
+                        </span>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2">
+                            <a href="{% url 'catalog:media_detail' media.pk %}" 
+                               class="text-decoration-none text-dark">{{ media.title|truncatechars:30 }}</a>
+                        </h6>
+                        
+                        {% if media.overview %}
+                        <p class="text-muted small mb-2">{{ media.overview|truncatechars:80 }}</p>
+                        {% endif %}
+                        
+                        <div class="mb-2">
+                            {% if media.genres.exists %}
+                                {% for genre in media.genres.all|slice:":2" %}
+                                    <span class="badge bg-secondary me-1">{{ genre.name }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="stars">
+                                {% with rating_stars=media.vote_average|floatformat:0|add:0 %}
+                                    {% if rating_stars >= 9 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                    {% elif rating_stars >= 8 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star star-empty"></i>
+                                    {% elif rating_stars >= 6 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% elif rating_stars >= 4 %}
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% elif rating_stars >= 2 %}
+                                        <i class="fas fa-star"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% else %}
+                                        <i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i><i class="far fa-star star-empty"></i>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                            <small class="text-muted">
+                                {{ media.release_date.year|default:"N/A" }}
+                            </small>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        {% if user.is_authenticated %}
+                        <div class="mt-3 d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-danger favorite-btn flex-fill" 
+                                    data-media-id="{{ media.pk }}">
+                                {% if media in user_favorites %}
+                                    <i class="fas fa-heart"></i>
+                                {% else %}
+                                    <i class="far fa-heart"></i>
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'catalog:media_detail' media.pk %}#reviews" 
+                               class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="fas fa-star"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginação -->
+        {% if is_paginated %}
+        <nav aria-label="Navegação de páginas" class="mt-5">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i> Anterior</span>
+                    </li>
+                {% endif %}
+                
+                <!-- Números das páginas -->
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Próxima <i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <!-- Estado vazio -->
+        <div class="text-center py-5">
+            {% if query %}
+                <i class="fas fa-search fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted">Nenhum resultado encontrado</h3>
+                <p class="text-muted">Não encontramos nada para "{{ query }}"</p>
+                <div class="mt-4">
+                    <p class="mb-3">Sugestões:</p>
+                    <ul class="list-unstyled text-muted">
+                        <li><i class="fas fa-lightbulb me-2"></i>Verifique a ortografia</li>
+                        <li><i class="fas fa-lightbulb me-2"></i>Tente usar palavras-chave diferentes</li>
+                        <li><i class="fas fa-lightbulb me-2"></i>Use termos mais gerais</li>
+                    </ul>
+                </div>
+                <a href="{% url 'catalog:search' %}" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Nova Busca
+                </a>
+            {% else %}
+                <i class="fas fa-search fa-5x text-muted mb-4"></i>
+                <h3 class="text-muted">Digite algo para buscar</h3>
+                <p class="text-muted">Use o campo acima para procurar filmes e séries</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+{% else %}
+<!-- Seção de Busca Principal -->
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6 text-center">
+                <i class="fas fa-search fa-5x text-orange mb-4"></i>
+                <h2 class="mb-3">Encontre seus filmes e séries favoritos</h2>
+                <p class="text-muted mb-4">Digite o nome do que você está procurando e descubra novos conteúdos!</p>
+                
+                <form method="GET" action="{% url 'catalog:search' %}" class="mb-5">
+                    <div class="input-group input-group-lg">
+                        <input type="text" name="q" class="form-control" 
+                               placeholder="Ex: Vingadores, Game of Thrones, Avatar..." 
+                               autofocus>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Links rápidos -->
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="{% url 'catalog:movies' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-film me-2"></i>Ver Filmes
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{% url 'catalog:tv_shows' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-tv me-2"></i>Ver Séries
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção de Categorias Populares -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h3 class="text-center mb-4">Explore por Categoria</h3>
+        <div class="row g-3">
+            <div class="col-md-2 col-sm-4 col-6">
+                <a href="{% url 'catalog:search' %}?q=ação" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-fist-raised d-block mb-2"></i>
+                    Ação
+                </a>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6">
+                <a href="{% url 'catalog:search' %}?q=comédia" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-laugh d-block mb-2"></i>
+                    Comédia
+                </a>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6">
+                <a href="{% url 'catalog:search' %}?q=drama" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-theater-masks d-block mb-2"></i>
+                    Drama
+                </a>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6">
+                <a href="{% url 'catalog:search' %}?q=terror" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-ghost d-block mb-2"></i>
+                    Terror
+                </a>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6">
+                <a href="{% url 'catalog:search' %}?q=romance" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-heart d-block mb-2"></i>
+                    Romance
+                </a>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6">
+                <a href="{% url 'catalog:search' %}?q=ficção" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-rocket d-block mb-2"></i>
+                    Ficção
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidade de favoritos (se aplicável)
+    const favoriteButtons = document.querySelectorAll('.favorite-btn');
+    favoriteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const mediaId = this.dataset.mediaId;
+            const icon = this.querySelector('i');
+            
+            fetch(`/catalog/favorites/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({media_id: mediaId})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_favorite) {
+                    icon.className = 'fas fa-heart';
+                    this.classList.remove('btn-outline-danger');
+                    this.classList.add('btn-danger');
+                } else {
+                    icon.className = 'far fa-heart';
+                    this.classList.remove('btn-danger');
+                    this.classList.add('btn-outline-danger');
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,476 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ media.title }} - CETPVPFLIX{% endblock %}
+
+{% block content %}
+<!-- Header Section com Backdrop -->
+<section class="position-relative text-white overflow-hidden" 
+         style="min-height: 60vh; {% if media.backdrop_path %}background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('https://image.tmdb.org/t/p/original{{ media.backdrop_path }}') center/cover;{% else %}background: linear-gradient(45deg, var(--bs-dark), var(--orange));{% endif %}">
+    <div class="container h-100 d-flex align-items-end py-5">
+        <div class="row w-100">
+            <div class="col-md-3 mb-4">
+                <!-- Poster -->
+                <div class="text-center">
+                    {% if media.poster_path %}
+                        <img src="https://image.tmdb.org/t/p/w500{{ media.poster_path }}" 
+                             alt="{{ media.title }}" 
+                             class="img-fluid rounded shadow-lg"
+                             style="max-height: 500px;">
+                    {% else %}
+                        <div class="bg-secondary rounded d-flex align-items-center justify-content-center" 
+                             style="height: 500px; width: 100%;">
+                            <i class="fas {% if media.media_type == 'tv' %}fa-tv{% else %}fa-film{% endif %} fa-5x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <div class="pb-4">
+                    <!-- Título e Informações Básicas -->
+                    <h1 class="display-4 fw-bold mb-3">{{ media.title }}</h1>
+                    
+                    {% if media.tagline %}
+                    <p class="lead fst-italic mb-4">"{{ media.tagline }}"</p>
+                    {% endif %}
+                    
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <!-- Avaliação -->
+                        {% if media.vote_average %}
+                        <div class="d-flex align-items-center bg-orange px-3 py-2 rounded">
+                            <i class="fas fa-star me-2"></i>
+                            <span class="fw-bold">{{ media.vote_average|floatformat:1 }}/10</span>
+                            <small class="ms-2">({{ media.vote_count }} votos)</small>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Ano -->
+                        {% if media.release_date %}
+                        <div class="bg-dark bg-opacity-50 px-3 py-2 rounded">
+                            <i class="fas fa-calendar me-2"></i>{{ media.release_date.year }}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Duração/Temporadas -->
+                        {% if media.runtime %}
+                        <div class="bg-dark bg-opacity-50 px-3 py-2 rounded">
+                            <i class="fas fa-clock me-2"></i>{{ media.runtime }}min
+                        </div>
+                        {% elif media.number_of_seasons %}
+                        <div class="bg-dark bg-opacity-50 px-3 py-2 rounded">
+                            <i class="fas fa-list me-2"></i>{{ media.number_of_seasons }} temporada{{ media.number_of_seasons|pluralize }}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Status (para séries) -->
+                        {% if media.media_type == 'tv' and media.status %}
+                        <div class="bg-dark bg-opacity-50 px-3 py-2 rounded">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {% if media.status == 'ended' %}
+                                Finalizada
+                            {% elif media.status == 'returning' %}
+                                Renovada
+                            {% elif media.status == 'canceled' %}
+                                Cancelada
+                            {% else %}
+                                {{ media.status|title }}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Gêneros -->
+                    {% if media.genres.exists %}
+                    <div class="mb-4">
+                        {% for genre in media.genres.all %}
+                            <span class="badge bg-secondary me-2 fs-6">{{ genre.name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Ações do Usuário -->
+                    {% if user.is_authenticated %}
+                    <div class="d-flex gap-3 mb-4">
+                        <button class="btn btn-danger btn-lg favorite-btn" data-media-id="{{ media.pk }}">
+                            {% if is_favorite %}
+                                <i class="fas fa-heart me-2"></i>Remover dos Favoritos
+                            {% else %}
+                                <i class="far fa-heart me-2"></i>Adicionar aos Favoritos
+                            {% endif %}
+                        </button>
+                        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                            <i class="fas fa-star me-2"></i>Avaliar
+                        </button>
+                        {% if not media.pk %}
+                        <button class="btn btn-outline-light btn-lg request-btn" data-media-id="{{ media.tmdb_id }}">
+                            <i class="fas fa-plus me-2"></i>Solicitar Adição
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Sinopse -->
+                    {% if media.overview %}
+                    <div>
+                        <h5 class="mb-3">Sinopse</h5>
+                        <p class="fs-6 lh-lg">{{ media.overview }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Informações Detalhadas -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Coluna Principal -->
+            <div class="col-lg-8">
+                <!-- Elenco -->
+                {% if cast %}
+                <div class="mb-5">
+                    <h3 class="mb-4">Elenco Principal</h3>
+                    <div class="row">
+                        {% for actor in cast|slice:":8" %}
+                        <div class="col-md-3 col-sm-4 col-6 mb-3">
+                            <div class="text-center">
+                                {% if actor.profile_path %}
+                                    <img src="https://image.tmdb.org/t/p/w300{{ actor.profile_path }}" 
+                                         alt="{{ actor.name }}" 
+                                         class="img-fluid rounded-circle mb-2"
+                                         style="width: 80px; height: 80px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-secondary rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center"
+                                         style="width: 80px; height: 80px;">
+                                        <i class="fas fa-user text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                <h6 class="mb-0">{{ actor.name }}</h6>
+                                {% if actor.character %}
+                                <small class="text-muted">{{ actor.character }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Avaliações -->
+                <div id="reviews" class="mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="mb-0">Avaliações dos Usuários</h3>
+                        {% if user.is_authenticated %}
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                            <i class="fas fa-plus me-2"></i>Adicionar Avaliação
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    {% if reviews %}
+                    <div class="row">
+                        {% for review in reviews %}
+                        <div class="col-12 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-orange text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                                                 style="width: 40px; height: 40px;">
+                                                {{ review.user.first_name.0|default:review.user.username.0|upper }}
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0">{{ review.user.get_full_name|default:review.user.username }}</h6>
+                                                <div class="stars">
+                                                    {% for i in "12345" %}
+                                                        {% if forloop.counter <= review.rating %}
+                                                            <i class="fas fa-star text-warning"></i>
+                                                        {% else %}
+                                                            <i class="far fa-star text-muted"></i>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ review.created_at|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                    {% if review.comment %}
+                                    <p class="mb-3">{{ review.comment }}</p>
+                                    {% endif %}
+                                    
+                                    <!-- Likes -->
+                                    {% if user.is_authenticated %}
+                                    <div class="d-flex align-items-center">
+                                        <button class="btn btn-sm btn-outline-primary like-btn me-3" 
+                                                data-review-id="{{ review.pk }}">
+                                            <i class="fas fa-thumbs-up me-1"></i>
+                                            <span class="like-count">{{ review.likes.count }}</span>
+                                        </button>
+                                        {% if review.user == user %}
+                                        <a href="{% url 'reviews:edit_review' review.pk %}" 
+                                           class="btn btn-sm btn-outline-secondary me-2">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                        <a href="{% url 'reviews:delete_review' review.pk %}" 
+                                           class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Mais avaliações -->
+                    <div class="text-center">
+                        <a href="{% url 'reviews:media_reviews' media.pk %}" class="btn btn-outline-primary">
+                            Ver Todas as Avaliações
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhuma avaliação ainda</h5>
+                        <p class="text-muted">Seja o primeiro a avaliar este {{ media.media_type|yesno:'programa,filme' }}!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Informações Técnicas -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informações</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if media.original_language %}
+                        <div class="row mb-2">
+                            <div class="col-6"><strong>Idioma Original:</strong></div>
+                            <div class="col-6">{{ media.original_language|upper }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if media.release_date %}
+                        <div class="row mb-2">
+                            <div class="col-6"><strong>{% if media.media_type == 'tv' %}Primeira Exibição:{% else %}Lançamento:{% endif %}</strong></div>
+                            <div class="col-6">{{ media.release_date|date:"d/m/Y" }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if media.budget %}
+                        <div class="row mb-2">
+                            <div class="col-6"><strong>Orçamento:</strong></div>
+                            <div class="col-6">${{ media.budget|floatformat:0 }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if media.revenue %}
+                        <div class="row mb-2">
+                            <div class="col-6"><strong>Bilheteria:</strong></div>
+                            <div class="col-6">${{ media.revenue|floatformat:0 }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if media.number_of_episodes %}
+                        <div class="row mb-2">
+                            <div class="col-6"><strong>Episódios:</strong></div>
+                            <div class="col-6">{{ media.number_of_episodes }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if media.homepage %}
+                        <div class="row">
+                            <div class="col-12">
+                                <a href="{{ media.homepage }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-external-link-alt me-2"></i>Site Oficial
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Estatísticas -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Estatísticas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-6"><strong>Avaliações:</strong></div>
+                            <div class="col-6">{{ user_reviews_count }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6"><strong>Favoritado por:</strong></div>
+                            <div class="col-6">{{ favorites_count }} usuário{{ favorites_count|pluralize }}</div>
+                        </div>
+                        {% if average_rating %}
+                        <div class="row">
+                            <div class="col-6"><strong>Média Local:</strong></div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="stars me-2">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= average_rating %}
+                                                <i class="fas fa-star text-warning"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-muted"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    {{ average_rating|floatformat:1 }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal de Avaliação -->
+{% if user.is_authenticated %}
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewModalLabel">Avaliar {{ media.title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'reviews:add_review' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" name="media" value="{{ media.pk }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Sua Avaliação</label>
+                        <div class="rating-input">
+                            {% for i in "12345" %}
+                            <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}">
+                            <label for="star{{ forloop.counter }}"><i class="far fa-star"></i></label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Comentário (opcional)</label>
+                        <textarea class="form-control" name="comment" id="comment" rows="4" 
+                                  placeholder="Compartilhe sua opinião sobre este {{ media.media_type|yesno:'programa,filme' }}..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Enviar Avaliação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rating-input input {
+    display: none;
+}
+
+.rating-input label {
+    cursor: pointer;
+    font-size: 2rem;
+    color: #ddd;
+    transition: color 0.2s;
+}
+
+.rating-input label:hover,
+.rating-input input:checked ~ label,
+.rating-input input:hover ~ label {
+    color: var(--orange);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidade de favoritos
+    const favoriteBtn = document.querySelector('.favorite-btn');
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', function() {
+            const mediaId = this.dataset.mediaId;
+            const icon = this.querySelector('i');
+            
+            fetch(`/catalog/favorites/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({media_id: mediaId})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_favorite) {
+                    icon.className = 'fas fa-heart me-2';
+                    this.innerHTML = icon.outerHTML + 'Remover dos Favoritos';
+                    this.classList.remove('btn-outline-danger');
+                    this.classList.add('btn-danger');
+                } else {
+                    icon.className = 'far fa-heart me-2';
+                    this.innerHTML = icon.outerHTML + 'Adicionar aos Favoritos';
+                    this.classList.remove('btn-danger');
+                    this.classList.add('btn-outline-danger');
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+    }
+    
+    // Funcionalidade de likes nas avaliações
+    const likeButtons = document.querySelectorAll('.like-btn');
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const reviewId = this.dataset.reviewId;
+            const likeCount = this.querySelector('.like-count');
+            
+            fetch(`/reviews/${reviewId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                likeCount.textContent = data.likes_count;
+                if (data.liked) {
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-primary');
+                } else {
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-outline-primary');
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+    });
+});
+</script>
+{% endblock %}

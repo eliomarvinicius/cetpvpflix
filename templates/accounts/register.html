@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Criar Conta - CETPVPFLIX{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center py-5" style="background: linear-gradient(135deg, var(--bs-dark) 0%, var(--orange) 100%);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5">
+                        <!-- Header -->
+                        <div class="text-center mb-4">
+                            <div class="bg-orange text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                                 style="width: 80px; height: 80px;">
+                                <i class="fas fa-user-plus fa-2x"></i>
+                            </div>
+                            <h2 class="h3 mb-2">Crie sua conta</h2>
+                            <p class="text-muted">Junte-se à comunidade CETPVPFLIX</p>
+                        </div>
+
+                        <!-- Alertas -->
+                        {% if messages %}
+                            {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Formulário de Registro -->
+                        <form method="POST" novalidate>
+                            {% csrf_token %}
+                            
+                            <!-- Nome e Sobrenome -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="first_name" class="form-label">
+                                        <i class="fas fa-user me-2"></i>Nome
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control {% if form.first_name.errors %}is-invalid{% endif %}" 
+                                           id="first_name" 
+                                           name="first_name" 
+                                           value="{{ form.first_name.value|default:'' }}"
+                                           placeholder="Seu nome"
+                                           required>
+                                    {% if form.first_name.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.first_name.errors.0 }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="last_name" class="form-label">
+                                        <i class="fas fa-user me-2"></i>Sobrenome
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control {% if form.last_name.errors %}is-invalid{% endif %}" 
+                                           id="last_name" 
+                                           name="last_name" 
+                                           value="{{ form.last_name.value|default:'' }}"
+                                           placeholder="Seu sobrenome"
+                                           required>
+                                    {% if form.last_name.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.last_name.errors.0 }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Username -->
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-at me-2"></i>Nome de usuário
+                                </label>
+                                <input type="text" 
+                                       class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
+                                       id="username" 
+                                       name="username" 
+                                       value="{{ form.username.value|default:'' }}"
+                                       placeholder="Escolha um nome de usuário único">
+                                <div class="form-text">Apenas letras, números e @/./+/-/_</div>
+                                {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.username.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-2"></i>Email
+                                </label>
+                                <input type="email" 
+                                       class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                                       id="email" 
+                                       name="email" 
+                                       value="{{ form.email.value|default:'' }}"
+                                       placeholder="seu.email@exemplo.com"
+                                       required>
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.email.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Senhas -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="password1" class="form-label">
+                                        <i class="fas fa-lock me-2"></i>Senha
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" 
+                                               class="form-control {% if form.password1.errors %}is-invalid{% endif %}" 
+                                               id="password1" 
+                                               name="password1"
+                                               placeholder="Crie uma senha forte">
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword1">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if form.password1.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.password1.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="password2" class="form-label">
+                                        <i class="fas fa-lock me-2"></i>Confirmar Senha
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" 
+                                               class="form-control {% if form.password2.errors %}is-invalid{% endif %}" 
+                                               id="password2" 
+                                               name="password2"
+                                               placeholder="Confirme sua senha">
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword2">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if form.password2.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.password2.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Indicador de força da senha -->
+                            <div class="mb-3">
+                                <div class="password-strength">
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small class="form-text text-muted">Força da senha: <span id="strength-text">-</span></small>
+                                </div>
+                            </div>
+
+                            <!-- Requisitos da senha -->
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <strong>Requisitos da senha:</strong>
+                                    <ul class="list-unstyled mt-2">
+                                        <li id="length-check"><i class="fas fa-times text-danger me-2"></i>Pelo menos 8 caracteres</li>
+                                        <li id="uppercase-check"><i class="fas fa-times text-danger me-2"></i>Uma letra maiúscula</li>
+                                        <li id="lowercase-check"><i class="fas fa-times text-danger me-2"></i>Uma letra minúscula</li>
+                                        <li id="number-check"><i class="fas fa-times text-danger me-2"></i>Um número</li>
+                                    </ul>
+                                </small>
+                            </div>
+
+                            <!-- Data de Nascimento -->
+                            <div class="mb-3">
+                                <label for="date_of_birth" class="form-label">
+                                    <i class="fas fa-calendar me-2"></i>Data de Nascimento (opcional)
+                                </label>
+                                <input type="date" 
+                                       class="form-control {% if form.date_of_birth.errors %}is-invalid{% endif %}" 
+                                       id="date_of_birth" 
+                                       name="date_of_birth" 
+                                       value="{{ form.date_of_birth.value|default:'' }}">
+                                {% if form.date_of_birth.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.date_of_birth.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Termos e Condições -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                                    <label class="form-check-label" for="terms">
+                                        Eu concordo com os <a href="#" target="_blank">Termos de Uso</a> e 
+                                        <a href="#" target="_blank">Política de Privacidade</a>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Newsletter -->
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="newsletter" name="newsletter" checked>
+                                    <label class="form-check-label" for="newsletter">
+                                        Quero receber novidades e recomendações por email
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Erros não relacionados a campos específicos -->
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                    <i class="fas fa-user-plus me-2"></i>Criar Conta
+                                </button>
+                            </div>
+
+                            <!-- Divisor -->
+                            <div class="text-center mb-3">
+                                <div class="position-relative">
+                                    <hr>
+                                    <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted">
+                                        ou
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Link para Login -->
+                            <div class="text-center">
+                                <p class="mb-0">
+                                    Já tem uma conta? 
+                                    <a href="{% url 'accounts:login' %}" class="text-decoration-none fw-bold">
+                                        Faça login aqui
+                                    </a>
+                                </p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Links adicionais -->
+                <div class="text-center mt-4">
+                    <div class="d-flex justify-content-center gap-4">
+                        <a href="{% url 'catalog:home' %}" class="text-white text-decoration-none">
+                            <i class="fas fa-home me-1"></i>Voltar ao Início
+                        </a>
+                        <a href="#" class="text-white text-decoration-none">
+                            <i class="fas fa-question-circle me-1"></i>Ajuda
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle para mostrar/ocultar senhas
+    function setupPasswordToggle(toggleId, passwordId) {
+        const toggle = document.getElementById(toggleId);
+        const password = document.getElementById(passwordId);
+        
+        if (toggle && password) {
+            toggle.addEventListener('click', function() {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                
+                const icon = this.querySelector('i');
+                if (type === 'password') {
+                    icon.className = 'fas fa-eye';
+                } else {
+                    icon.className = 'fas fa-eye-slash';
+                }
+            });
+        }
+    }
+    
+    setupPasswordToggle('togglePassword1', 'password1');
+    setupPasswordToggle('togglePassword2', 'password2');
+
+    // Verificador de força da senha
+    const password1 = document.getElementById('password1');
+    const progressBar = document.querySelector('.progress-bar');
+    const strengthText = document.getElementById('strength-text');
+
+    password1.addEventListener('input', function() {
+        checkPasswordStrength(this.value);
+    });
+
+    function checkPasswordStrength(password) {
+        let score = 0;
+        
+        // Verificações individuais
+        const lengthCheck = document.getElementById('length-check');
+        const uppercaseCheck = document.getElementById('uppercase-check');
+        const lowercaseCheck = document.getElementById('lowercase-check');
+        const numberCheck = document.getElementById('number-check');
+        
+        // Reset icons
+        [lengthCheck, uppercaseCheck, lowercaseCheck, numberCheck].forEach(check => {
+            const icon = check.querySelector('i');
+            icon.className = 'fas fa-times text-danger me-2';
+        });
+        
+        // Comprimento
+        if (password.length >= 8) {
+            score += 25;
+            const icon = lengthCheck.querySelector('i');
+            icon.className = 'fas fa-check text-success me-2';
+        }
+        
+        // Letra maiúscula
+        if (/[A-Z]/.test(password)) {
+            score += 25;
+            const icon = uppercaseCheck.querySelector('i');
+            icon.className = 'fas fa-check text-success me-2';
+        }
+        
+        // Letra minúscula
+        if (/[a-z]/.test(password)) {
+            score += 25;
+            const icon = lowercaseCheck.querySelector('i');
+            icon.className = 'fas fa-check text-success me-2';
+        }
+        
+        // Número
+        if (/\d/.test(password)) {
+            score += 25;
+            const icon = numberCheck.querySelector('i');
+            icon.className = 'fas fa-check text-success me-2';
+        }
+        
+        // Atualizar barra de progresso
+        progressBar.style.width = score + '%';
+        
+        // Definir cor e texto
+        if (score < 50) {
+            progressBar.className = 'progress-bar bg-danger';
+            strengthText.textContent = 'Fraca';
+        } else if (score < 75) {
+            progressBar.className = 'progress-bar bg-warning';
+            strengthText.textContent = 'Média';
+        } else if (score < 100) {
+            progressBar.className = 'progress-bar bg-info';
+            strengthText.textContent = 'Boa';
+        } else {
+            progressBar.className = 'progress-bar bg-success';
+            strengthText.textContent = 'Excelente';
+        }
+    }
+
+    // Verificação de confirmação de senha
+    const password2 = document.getElementById('password2');
+    
+    function checkPasswordMatch() {
+        if (password1.value && password2.value) {
+            if (password1.value === password2.value) {
+                password2.classList.remove('is-invalid');
+                password2.classList.add('is-valid');
+            } else {
+                password2.classList.remove('is-valid');
+                password2.classList.add('is-invalid');
+            }
+        } else {
+            password2.classList.remove('is-valid', 'is-invalid');
+        }
+    }
+    
+    password1.addEventListener('input', checkPasswordMatch);
+    password2.addEventListener('input', checkPasswordMatch);
+
+    // Validação do formulário
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    form.addEventListener('submit', function(e) {
+        const terms = document.getElementById('terms');
+        if (!terms.checked) {
+            e.preventDefault();
+            alert('Você deve concordar com os termos de uso para continuar.');
+            return;
+        }
+        
+        if (password1.value !== password2.value) {
+            e.preventDefault();
+            alert('As senhas não coincidem.');
+            return;
+        }
+        
+        // Mostrar loading
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Criando conta...';
+        submitBtn.disabled = true;
+    });
+
+    // Auto-focus no primeiro campo
+    document.getElementById('first_name').focus();
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.btn-primary {
+    background: var(--orange);
+    border-color: var(--orange);
+}
+
+.btn-primary:hover {
+    background: #e67e22;
+    border-color: #e67e22;
+}
+
+.form-control:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 0.2rem rgba(243, 156, 18, 0.25);
+}
+
+.text-decoration-none:hover {
+    text-decoration: underline !important;
+}
+
+.password-strength {
+    margin-top: 0.5rem;
+}
+
+.list-unstyled li {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}
