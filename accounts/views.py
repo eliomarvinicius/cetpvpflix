@@ -1,16 +1,17 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.views import LoginView
-from django.contrib.auth import login
+from django.contrib.auth import login, get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views.generic import CreateView, UpdateView, TemplateView
 from django.urls import reverse_lazy
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
 from django.db import models
 
 from catalog.models import Favorite
 from reviews.models import Review
+from .forms import CustomUserCreationForm, ProfileUpdateForm
+
+User = get_user_model()
 
 
 class CustomLoginView(LoginView):
@@ -28,7 +29,7 @@ class RegisterView(CreateView):
     """
     View para registro de novo usuário
     """
-    form_class = UserCreationForm
+    form_class = CustomUserCreationForm
     template_name = 'accounts/register.html'
     success_url = reverse_lazy('catalog:home')
     
@@ -72,8 +73,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         
         # Avaliações recentes
         context['recent_reviews'] = Review.objects.filter(
-            user=user,
-            is_active=True
+            user=user
         ).select_related('media').order_by('-created_at')[:6]
         
         return context
@@ -84,8 +84,8 @@ class EditProfileView(LoginRequiredMixin, UpdateView):
     Editar perfil do usuário
     """
     model = User
+    form_class = ProfileUpdateForm
     template_name = 'accounts/edit_profile.html'
-    fields = ['first_name', 'last_name', 'email']
     success_url = reverse_lazy('accounts:profile')
     
     def get_object(self):

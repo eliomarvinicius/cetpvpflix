@@ -63,37 +63,63 @@ class MoviesView(ListView):
     def get_queryset(self):
         queryset = Media.objects.filter(media_type='movie')
         
+        # Filtro por busca
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(original_title__icontains=search)
+            )
+        
         # Filtro por gênero
         genre_id = self.request.GET.get('genre')
         if genre_id:
-            queryset = queryset.filter(genres__id=genre_id)
+            try:
+                genre_id = int(genre_id)
+                queryset = queryset.filter(genres__id=genre_id)
+            except (ValueError, TypeError):
+                pass
         
         # Filtro por ano
         year = self.request.GET.get('year')
         if year:
-            queryset = queryset.filter(release_date__year=year)
+            try:
+                year = int(year)
+                queryset = queryset.filter(release_date__year=year)
+            except (ValueError, TypeError):
+                pass
+        
+        # Filtro por avaliação mínima
+        min_rating = self.request.GET.get('min_rating')
+        if min_rating:
+            try:
+                min_rating = int(min_rating)
+                queryset = queryset.filter(vote_average__gte=min_rating*2)  # TMDB usa escala 0-10
+            except (ValueError, TypeError):
+                pass
         
         # Ordenação
-        sort_by = self.request.GET.get('sort', '-popularity')
-        if sort_by == 'rating':
-            queryset = queryset.annotate(
-                avg_rating=Avg('reviews__rating')
-            ).order_by('-avg_rating', '-popularity')
-        elif sort_by == 'recent':
-            queryset = queryset.order_by('-release_date')
-        elif sort_by == 'title':
-            queryset = queryset.order_by('title')
+        ordering = self.request.GET.get('ordering', '-vote_average')
+        valid_orderings = ['-vote_average', '-release_date', 'release_date', 'title', '-title']
+        if ordering in valid_orderings:
+            queryset = queryset.order_by(ordering)
         else:
-            queryset = queryset.order_by('-popularity')
+            queryset = queryset.order_by('-vote_average')
         
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['genres'] = Genre.objects.all()
-        context['current_genre'] = self.request.GET.get('genre')
-        context['current_year'] = self.request.GET.get('year')
-        context['current_sort'] = self.request.GET.get('sort', '-popularity')
+        context['movies_count'] = self.get_queryset().count()
+        
+        # Anos disponíveis
+        years = Media.objects.filter(
+            media_type='movie',
+            release_date__isnull=False
+        ).dates('release_date', 'year', order='DESC')
+        context['years'] = [date.year for date in years]
+        
         return context
 
 
@@ -109,35 +135,59 @@ class TVShowsView(ListView):
     def get_queryset(self):
         queryset = Media.objects.filter(media_type='tv')
         
-        # Filtros similares aos filmes
+        # Filtro por busca
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(original_title__icontains=search)
+            )
+        
+        # Filtro por gênero
         genre_id = self.request.GET.get('genre')
         if genre_id:
-            queryset = queryset.filter(genres__id=genre_id)
+            try:
+                genre_id = int(genre_id)
+                queryset = queryset.filter(genres__id=genre_id)
+            except (ValueError, TypeError):
+                pass
         
+        # Filtro por ano
         year = self.request.GET.get('year')
         if year:
-            queryset = queryset.filter(release_date__year=year)
+            try:
+                year = int(year)
+                queryset = queryset.filter(release_date__year=year)
+            except (ValueError, TypeError):
+                pass
         
-        sort_by = self.request.GET.get('sort', '-popularity')
-        if sort_by == 'rating':
-            queryset = queryset.annotate(
-                avg_rating=Avg('reviews__rating')
-            ).order_by('-avg_rating', '-popularity')
-        elif sort_by == 'recent':
-            queryset = queryset.order_by('-release_date')
-        elif sort_by == 'title':
-            queryset = queryset.order_by('title')
+        # Filtro por status (para séries)
+        status = self.request.GET.get('status')
+        if status and hasattr(queryset.model, 'status'):
+            queryset = queryset.filter(status=status)
+        
+        # Ordenação
+        ordering = self.request.GET.get('ordering', '-vote_average')
+        valid_orderings = ['-vote_average', '-release_date', 'release_date', 'title', '-title']
+        if ordering in valid_orderings:
+            queryset = queryset.order_by(ordering)
         else:
-            queryset = queryset.order_by('-popularity')
+            queryset = queryset.order_by('-vote_average')
         
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['genres'] = Genre.objects.all()
-        context['current_genre'] = self.request.GET.get('genre')
-        context['current_year'] = self.request.GET.get('year')
-        context['current_sort'] = self.request.GET.get('sort', '-popularity')
+        context['tv_shows_count'] = self.get_queryset().count()
+        
+        # Anos disponíveis
+        years = Media.objects.filter(
+            media_type='tv',
+            release_date__isnull=False
+        ).dates('release_date', 'year', order='DESC')
+        context['years'] = [date.year for date in years]
+        
         return context
 
 
@@ -152,13 +202,38 @@ class SearchView(ListView):
     
     def get_queryset(self):
         query = self.request.GET.get('q', '')
-        if query:
-            return Media.objects.filter(
-                Q(title__icontains=query) | 
-                Q(original_title__icontains=query) |
-                Q(overview__icontains=query)
-            ).order_by('-popularity')
-        return Media.objects.none()
+        if not query:
+            return Media.objects.none()
+            
+        queryset = Media.objects.filter(
+            Q(title__icontains=query) | 
+            Q(original_title__icontains=query) |
+            Q(overview__icontains=query)
+        )
+        
+        # Filtro por tipo (filme/série)
+        media_type = self.request.GET.get('type')
+        if media_type in ['movie', 'tv']:
+            queryset = queryset.filter(media_type=media_type)
+        
+        # Filtro por ano
+        year = self.request.GET.get('year')
+        if year:
+            try:
+                year = int(year)
+                queryset = queryset.filter(release_date__year=year)
+            except (ValueError, TypeError):
+                pass
+        
+        # Ordenação
+        ordering = self.request.GET.get('ordering', '-popularity')
+        valid_orderings = ['-popularity', '-vote_average', '-release_date', 'title']
+        if ordering in valid_orderings:
+            queryset = queryset.order_by(ordering)
+        else:
+            queryset = queryset.order_by('-popularity')
+        
+        return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

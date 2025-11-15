@@ -53,14 +53,19 @@
         
         /* Buttons */
         .btn-primary {
-            background-color: var(--primary-orange);
-            border-color: var(--primary-orange);
+            background-color: var(--primary-orange) !important;
+            border-color: var(--primary-orange) !important;
+            color: white !important;
             font-weight: 500;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
         
         .btn-primary:hover {
-            background-color: var(--secondary-orange);
-            border-color: var(--secondary-orange);
+            background-color: var(--secondary-orange) !important;
+            border-color: var(--secondary-orange) !important;
+            color: white !important;
+            opacity: 1 !important;
         }
         
         .btn-outline-primary {
@@ -173,8 +178,12 @@
                 </ul>
                 
                 <!-- Search Form -->
-                <form class="d-flex me-3" method="GET" action="{% url 'catalog:search' %}">
-                    <input class="form-control me-2" type="search" name="q" placeholder="Buscar filmes e séries..." aria-label="Search">
+                <form class="d-flex me-3" method="GET" action="{% url 'catalog:search' %}" id="navbar-search-form">
+                    <input class="form-control me-2" type="search" name="q" 
+                           placeholder="Buscar filmes e séries..." 
+                           aria-label="Search"
+                           id="navbar-search-input"
+                           autocomplete="off">
                     <button class="btn btn-outline-primary" type="submit">
                         <i class="fas fa-search"></i>
                     </button>
@@ -194,7 +203,7 @@
                                 <li><a class="dropdown-item" href="{% url 'catalog:my_reviews' %}">
                                     <i class="fas fa-star"></i> Minhas Avaliações
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'catalog:content_requests' %}">
+                                <li><a class="dropdown-item" href="{% url 'catalog:request_content' %}">
                                     <i class="fas fa-plus"></i> Solicitar Conteúdo
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
@@ -249,6 +258,37 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Limpar campo de busca no navbar quando necessário
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('navbar-search-input');
+            const searchForm = document.getElementById('navbar-search-form');
+            
+            // Se não estamos na página de busca, limpar o campo
+            if (searchInput && !window.location.pathname.includes('/search/')) {
+                searchInput.value = '';
+            }
+            
+            // Adicionar funcionalidade para limpar o campo ao clicar
+            if (searchInput) {
+                searchInput.addEventListener('focus', function() {
+                    // Se o usuário focar no campo e não estiver na página de busca, limpar
+                    if (!window.location.pathname.includes('/search/')) {
+                        this.value = '';
+                    }
+                });
+                
+                // Adicionar tecla ESC para limpar
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        this.value = '';
+                        this.blur();
+                    }
+                });
+            }
+        });
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

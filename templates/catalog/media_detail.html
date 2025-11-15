@@ -159,14 +159,48 @@
                 </div>
                 {% endif %}
                 
-                <!-- Avaliações -->
+                                    <!-- Avaliação do usuário (se existir) -->
+                    {% if user.is_authenticated and user_review %}
+                    <div class="alert alert-info user-review-badge mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-star me-2"></i>
+                            <strong>Sua Avaliação:</strong>
+                            <div class="ms-2">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= user_review.rating %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-warning"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="ms-2 badge bg-warning text-dark">{{ user_review.rating }}/5</span>
+                        </div>
+                        {% if user_review.comment %}
+                        <div class="mt-2">
+                            <small class="text-muted">Seu comentário:</small>
+                            <p class="mb-0 mt-1">"{{ user_review.comment }}"</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Avaliações -->
                 <div id="reviews" class="mb-5">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3 class="mb-0">Avaliações dos Usuários</h3>
                         {% if user.is_authenticated %}
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">
-                            <i class="fas fa-plus me-2"></i>Adicionar Avaliação
-                        </button>
+                            {% if user_review %}
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editReviewModal">
+                                        <i class="fas fa-edit me-2"></i>Editar Minha Avaliação
+                                    </button>
+                                </div>
+                            {% else %}
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                                    <i class="fas fa-plus me-2"></i>Adicionar Avaliação
+                                </button>
+                            {% endif %}
                         {% endif %}
                     </div>
                     
@@ -340,6 +374,8 @@
 
 <!-- Modal de Avaliação -->
 {% if user.is_authenticated %}
+<!-- Modal para adicionar nova avaliação -->
+{% if not user_review %}
 <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -347,7 +383,7 @@
                 <h5 class="modal-title" id="reviewModalLabel">Avaliar {{ media.title }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <form method="POST" action="{% url 'reviews:add_review' %}">
+            <form method="POST" action="{% url 'reviews:add_review' media.pk %}">
                 <div class="modal-body">
                     {% csrf_token %}
                     <input type="hidden" name="media" value="{{ media.pk }}">
@@ -356,16 +392,17 @@
                         <label class="form-label">Sua Avaliação</label>
                         <div class="rating-input">
                             {% for i in "12345" %}
-                            <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}">
+                            <input type="radio" name="rating" value="{{ forloop.counter }}" id="star{{ forloop.counter }}" required>
                             <label for="star{{ forloop.counter }}"><i class="far fa-star"></i></label>
                             {% endfor %}
                         </div>
+                        <small class="text-muted">Clique nas estrelas para avaliar</small>
                     </div>
                     
                     <div class="mb-3">
                         <label for="comment" class="form-label">Comentário (opcional)</label>
                         <textarea class="form-control" name="comment" id="comment" rows="4" 
-                                  placeholder="Compartilhe sua opinião sobre este {{ media.media_type|yesno:'programa,filme' }}..."></textarea>
+                                  placeholder="Compartilhe sua opinião sobre este {{ media.get_media_type_display|lower }}..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -377,6 +414,50 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Modal para editar avaliação existente -->
+{% if user_review %}
+<div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editReviewModalLabel">Editar Avaliação de {{ media.title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'reviews:edit_review' user_review.pk %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Sua Avaliação</label>
+                        <div class="rating-input">
+                            {% for i in "12345" %}
+                            <input type="radio" name="rating" value="{{ forloop.counter }}" 
+                                   id="edit_star{{ forloop.counter }}" 
+                                   {% if user_review.rating == forloop.counter %}checked{% endif %} required>
+                            <label for="edit_star{{ forloop.counter }}"><i class="far fa-star"></i></label>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">Sua avaliação atual: {{ user_review.rating }} estrela{{ user_review.rating|pluralize }}</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_comment" class="form-label">Comentário (opcional)</label>
+                        <textarea class="form-control" name="comment" id="edit_comment" rows="4" 
+                                  placeholder="Compartilhe sua opinião sobre este {{ media.get_media_type_display|lower }}...">{{ user_review.comment }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <a href="{% url 'reviews:delete_review' user_review.pk %}" class="btn btn-danger">Excluir Avaliação</a>
+                    <button type="submit" class="btn btn-primary">Atualizar Avaliação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -385,7 +466,7 @@
     display: flex;
     flex-direction: row-reverse;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 .rating-input input {
@@ -396,13 +477,28 @@
     cursor: pointer;
     font-size: 2rem;
     color: #ddd;
-    transition: color 0.2s;
+    transition: all 0.2s ease;
 }
 
-.rating-input label:hover,
-.rating-input input:checked ~ label,
-.rating-input input:hover ~ label {
+.rating-input label:hover {
     color: var(--orange);
+    transform: scale(1.1);
+}
+
+.rating-input input:checked ~ label,
+.rating-input input:checked ~ label ~ label {
+    color: var(--orange);
+}
+
+.rating-input label:hover ~ label {
+    color: var(--orange);
+}
+
+/* Mostrar avaliação do usuário se existir */
+.user-review-badge {
+    background: linear-gradient(45deg, var(--orange), #ff6b35);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
 }
 </style>
 {% endblock %}
