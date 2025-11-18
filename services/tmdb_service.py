@@ -209,6 +209,34 @@ class TMDBService:
                     details = self.get_tv_details(tv_data['id'])
                     if details:
                         self.create_or_update_media(details, 'tv')
+    
+    def get_movie_genres(self):
+        """Buscar gêneros de filmes"""
+        data = self._make_request('genre/movie/list')
+        return data.get('genres', []) if data else []
+    
+    def get_tv_genres(self):
+        """Buscar gêneros de séries"""
+        data = self._make_request('genre/tv/list')
+        return data.get('genres', []) if data else []
+    
+    def get_now_playing_movies(self, page=1):
+        """Buscar filmes em cartaz"""
+        data = self._make_request('movie/now_playing', {'page': page})
+        return data.get('results', []) if data else []
+    
+    def get_top_rated_movies(self, page=1):
+        """Buscar filmes bem avaliados"""
+        data = self._make_request('movie/top_rated', {'page': page})
+        return data.get('results', []) if data else []
+    
+    def get_movie_credits(self, movie_id):
+        """Buscar créditos de um filme"""
+        return self._make_request(f'movie/{movie_id}/credits')
+    
+    def get_tv_credits(self, tv_id):
+        """Buscar créditos de uma série"""
+        return self._make_request(f'tv/{tv_id}/credits')
 
 # Instância global do serviço
 tmdb_service = TMDBService()

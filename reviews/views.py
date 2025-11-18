@@ -80,6 +80,9 @@ class DeleteReviewView(LoginRequiredMixin, DeleteView):
     def get_queryset(self):
         return Review.objects.filter(user=self.request.user)
     
+    def get_success_url(self):
+        return reverse_lazy('catalog:media_detail', kwargs={'pk': self.object.media.id})
+    
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         media_id = self.object.media.id
@@ -90,8 +93,7 @@ class DeleteReviewView(LoginRequiredMixin, DeleteView):
             f'Sua avaliação para "{media_title}" foi removida.'
         )
         
-        self.object.delete()
-        return redirect('catalog:media_detail', pk=media_id)
+        return super().delete(request, *args, **kwargs)
 
 
 class MediaReviewsView(ListView):
@@ -188,13 +190,20 @@ def ajax_like_review(request, review_id):
     """
     Like/Unlike em avaliação via AJAX
     """
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': 'Método não permitido'
+        })
+    
     review = get_object_or_404(Review, id=review_id)
     
     # Não permitir curtir própria avaliação
     if review.user == request.user:
         return JsonResponse({
             'success': False,
-            'error': 'Você não pode curtir sua própria avaliação.'
+            'error': 'Você não pode curtir sua própria avaliação.',
+            'is_own_review': True
         })
     
     like, created = ReviewLike.objects.get_or_create(
@@ -216,5 +225,6 @@ def ajax_like_review(request, review_id):
         'success': True,
         'liked': liked,
         'action': action,
-        'total_likes': total_likes
+        'total_likes': total_likes,
+        'message': 'Like adicionado!' if liked else 'Like removido!'
     })

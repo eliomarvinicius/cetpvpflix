@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.disabled = true;
             icon.style.animation = 'bounce 0.3s ease-in-out';
             
-            fetch(`{% url 'reviews:ajax_like_review' 0 %}`.replace('0', reviewId), {
+            fetch(`/reviews/ajax/like-review/${reviewId}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -783,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.classList.remove('btn-outline-primary');
                         this.classList.add('btn-primary');
                         icon.className = 'fas fa-thumbs-up me-1';
-                        showToast('👍 Obrigado pelo like!', 'success');
+                        showToast('👍 Like adicionado!', 'success');
                     } else {
                         this.classList.remove('btn-primary');
                         this.classList.add('btn-outline-primary');
@@ -791,7 +791,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         showToast('Like removido', 'info');
                     }
                 } else {
-                    showToast('Erro ao curtir. Tente novamente.', 'error');
+                    if (data.is_own_review) {
+                        showToast('💡 Você não pode curtir sua própria avaliação', 'warning');
+                    } else {
+                        showToast(data.error || 'Erro ao curtir. Tente novamente.', 'error');
+                    }
                 }
             })
             .catch(error => {
